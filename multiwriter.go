@@ -4,7 +4,9 @@ import (
 	"errors"
 	"io"
 	"os"
+	"runtime"
 	"sync"
+	"time"
 )
 
 // MultiWriter is a synced multiwriter
@@ -23,6 +25,7 @@ func (mw *MultiWriter) Write(p []byte) (int, error) {
 	}
 
 	mw.lock.Lock()
+	defer mw.lock.Unlock()
 
 	var n1, n2 int
 	var err1, err2 error
@@ -53,6 +56,11 @@ func (mw *MultiWriter) Write(p []byte) (int, error) {
 		err = err1
 	}
 
-	mw.lock.Unlock()
+	// NOTE(Pedro): On Windows the terminal output will be truncated sometimes
+	// we can avoid it by sleeping for one Nanosecond
+	if runtime.GOOS == "windows" {
+		time.Sleep(1 * time.Nanosecond)
+	}
+
 	return n, err
 }
